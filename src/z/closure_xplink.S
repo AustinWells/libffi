@@ -13,6 +13,12 @@ FFIXCLSR CELQPRLG DSASIZE=DSASZ2,PSECT=FFIXCLSRP
 
          USING  CEEDSAHP,4
          
+* we are abusing the enviroment pointer 
+* to store the closure address and the env pointer out of line
+* we need to restore the env pointer here to avoid issues
+        LG 0,0(5)
+        LG 5,8(5)
+
 * register for save buffer 
 * this goes into the helper
         LA 13,REGSAV

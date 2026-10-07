@@ -1333,7 +1333,7 @@ ffi_prep_closure_loc (ffi_closure *closure,
  *
  * In FFIXCLSR: closure ptr is in r0 on entry.
    */
-
+#if 0
   /* [16]  basr %r5,0              0D 50         r5 = tramp+18 */
   *(short *)&closure->tramp[16] = 0x0d50;
 
@@ -1365,6 +1365,22 @@ ffi_prep_closure_loc (ffi_closure *closure,
   *(short *)&closure->tramp[38] = 0x07f6;
 
   *(long *)&closure->tramp[120] = (long)&ffi_closure_XPLINK;
+
+#else
+
+  void **ffi_closure_descriptor = (void **)&ffi_closure_XPLINK;
+
+  void **cheat = malloc(2 * sizeof(void *)); 
+
+  cheat[0] = (void *)closure;
+  cheat[1] = (void *)ffi_closure_descriptor[0];
+
+  *(long *)&closure->tramp[0] = (long)cheat;
+  *(long *)&closure->tramp[8] = (long)ffi_closure_descriptor[1];
+
+#endif
+
+
 
   closure->cif = cif;
   closure->user_data = user_data;
