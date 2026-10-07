@@ -7,7 +7,7 @@
 *             saved by CELQPRLG at 2176(,r4_caller))
 *   r4        caller's stack pointer (CELQPRLG adjusts before body;
 *             r4_caller recovered from backchain at r4_new+2048)
-*   r5        on entry points to the cheat buffer (tramp[112..127]);
+*   r5        on entry points to tramp_data (tramp[16..31]);
 *             restored to the original env word by the first two LGs
 *   r6        FFIXCLSR entry point (set by XPLINK call mechanism)
 *   r7-r15    untouched by trampoline, registers from callee
@@ -16,9 +16,8 @@ FFIXCLSR CELQPRLG DSASIZE=DSASZ2,PSECT=FFIXCLSRP
 
          USING  CEEDSAHP,4
          
-* The env-pointer (r5) points to the cheat buffer embedded in the closure
-* trampoline area (tramp[112..127]).  Load the closure ptr into r0 and
-* restore the original env word into r5 before the normal prologue runs.
+* r5 points to tramp_data (tramp[16..31]).  Load the closure ptr into r0
+* and restore the original env word into r5 before the normal prologue runs.
         LG 0,0(5)
         LG 5,8(5)
 

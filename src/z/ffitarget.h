@@ -56,13 +56,22 @@ typedef enum ffi_abi {
 /* ---- Definitions for closures ----------------------------------------- */
 
 #define FFI_CLOSURES 1
-#define FFI_TRAMPOLINE_SIZE 128
 #define FFI_NATIVE_RAW_API 0
 
 /* z/OS does not support mapping writable+executable pages, so the static
-   trampoline strategy (env-pointer cheat) is the only viable approach.
+   trampoline strategy (env-pointer tramp_data) is the only viable approach.
    Enable it unconditionally.  */
 #define FFI_EXEC_STATIC_TRAMP 1
+
+/* Static trampoline layout (32 bytes):
+ *   [0..7]   pointer to tramp_data -> r5 on call
+ *   [8..15]  FFIXCLSR entry point  -> r6/PC on call
+ *   [16..23] tramp_data[0]: closure ptr  (LG 0,0(5) in FFIXCLSR)
+ *   [24..31] tramp_data[1]: original env word (LG 5,8(5) in FFIXCLSR)
+ *
+ * The dynamic trampoline path (unused on z/OS) required 128 bytes;
+ * the static path needs only these 32.  */
+#define FFI_TRAMPOLINE_SIZE 32
 
 #endif
 

@@ -1315,27 +1315,23 @@ ffi_prep_closure_loc (ffi_closure *closure,
    *
    * Instead we use the XPLINK function-descriptor layout to pass two
    * values through r5 (env pointer) into FFIXCLSR without disturbing
-   * the argument registers r1-r3:
+   * the argument registers r1-r3.  The full 32-byte tramp[] is used:
    *
-   *   tramp[0..7]   = pointer to cheat buffer  -> loaded into r5 on call
+   *   tramp[0..7]   = pointer to tramp_data  -> loaded into r5 on call
    *   tramp[8..15]  = FFIXCLSR entry-point addr -> loaded into r6/PC
-   *
-   * The cheat buffer occupies the last 16 bytes of the tramp array
-   * (tramp[112..127]), so no separate heap allocation is needed:
-   *
-   *   tramp[112..119] = closure ptr  (FFIXCLSR: LG 0,0(5) -> r0)
-   *   tramp[120..127] = original env word from the descriptor
-   *                     (FFIXCLSR: LG 5,8(5) -> r5, restoring env)
+   *   tramp[16..23] = closure ptr  (FFIXCLSR: LG 0,0(5) -> r0)
+   *   tramp[24..31] = original env word from the descriptor
+   *                   (FFIXCLSR: LG 5,8(5) -> r5, restoring env)
    */
 
-  void **desc  = (void **)&ffi_closure_XPLINK;
-  void **cheat = (void **)&closure->tramp[112];
+  void **desc       = (void **)&ffi_closure_XPLINK;
+  void **tramp_data = (void **)&closure->tramp[16];
 
-  cheat[0] = (void *)closure; /* r0 = closure ptr, loaded by FFIXCLSR */
-  cheat[1] = (void *)desc[0]; /* env word, restored into r5 by FFIXCLSR */
+  tramp_data[0] = (void *)closure; /* r0 = closure ptr, loaded by FFIXCLSR */
+  tramp_data[1] = (void *)desc[0]; /* env word, restored into r5 by FFIXCLSR */
 
-  *(long *)&closure->tramp[0] = (long)cheat;   /* r5 -> cheat buffer    */
-  *(long *)&closure->tramp[8] = (long)desc[1]; /* r6 -> FFIXCLSR entry  */
+  *(long *)&closure->tramp[0] = (long)tramp_data; /* r5 -> tramp_data      */
+  *(long *)&closure->tramp[8] = (long)desc[1];    /* r6 -> FFIXCLSR entry  */
 
 #else
   /* Dynamic trampoline: write executable instructions directly into the
