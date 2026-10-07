@@ -1298,7 +1298,6 @@ ffi_closure_helper_XPLINK (ffi_closure *closure, void *retbuf,
 /* Function - Prepare a FFI closure.                                  */
 /*                                                                    */
 /*====================================================================*/
- 
 
 ffi_status
 ffi_prep_closure_loc (ffi_closure *closure,
@@ -1310,30 +1309,53 @@ ffi_prep_closure_loc (ffi_closure *closure,
   if (cif->abi != FFI_XPLINK)
     return FFI_BAD_ABI;
 
+#ifdef FFI_EXEC_STATIC_TRAMP
+  /* Static trampoline: z/OS does not allow W+X mappings, so we cannot
+   * write executable instructions into the trampoline buffer at runtime.
+   *
+   * Instead we use the XPLINK function-descriptor layout to pass two
+   * values through r5 (env pointer) into FFIXCLSR without disturbing
+   * the argument registers r1-r3:
+   *
+   *   tramp[0..7]   = pointer to cheat buffer  -> loaded into r5 on call
+   *   tramp[8..15]  = FFIXCLSR entry-point addr -> loaded into r6/PC
+   *
+   * The cheat buffer occupies the last 16 bytes of the tramp array
+   * (tramp[112..127]), so no separate heap allocation is needed:
+   *
+   *   tramp[112..119] = closure ptr  (FFIXCLSR: LG 0,0(5) -> r0)
+   *   tramp[120..127] = original env word from the descriptor
+   *                     (FFIXCLSR: LG 5,8(5) -> r5, restoring env)
+   */
+
+  void **desc  = (void **)&ffi_closure_XPLINK;
+  void **cheat = (void **)&closure->tramp[112];
+
+  cheat[0] = (void *)closure; /* r0 = closure ptr, loaded by FFIXCLSR */
+  cheat[1] = (void *)desc[0]; /* env word, restored into r5 by FFIXCLSR */
+
+  *(long *)&closure->tramp[0] = (long)cheat;   /* r5 -> cheat buffer    */
+  *(long *)&closure->tramp[8] = (long)desc[1]; /* r6 -> FFIXCLSR entry  */
+
+#else
+  /* Dynamic trampoline: write executable instructions directly into the
+   * trampoline buffer (requires W+X page mapping, not available on z/OS).
+   *
+   * Trampoline layout (offsets relative to tramp[0]):
+   *   [0..7]    env  word = 0 (unused)
+   *   [8..15]   entry point = &tramp[16]
+   *   [16]  basr  r5, 0           r5 = tramp+18  (PC anchor)
+   *   [18]  lgr   r0, r5          r0 = tramp+18
+   *   [22]  ahi   r0, -18         r0 = tramp+0   = closure ptr
+   *   [26]  lg    r5, 102(,r5)    r5 = value at tramp[120]
+   *   [32]  lmg   r5, r6, 0(,r5) load env+entry from descriptor
+   *   [38]  bcr   15, r6          branch to FFIXCLSR
+   *   [120..127] pointer to ffi_closure_XPLINK function descriptor
+   */
+
   *(long *)&closure->tramp[0] = 0x0000000000000000;
   *(long *)&closure->tramp[8] = (long)(&closure->tramp[16]);
 
-  /* Trampoline layout: no DSA pushed, no frame on the stack.
- * r1/r2/r3/r4 are left completely untouched so CELQPRLG saves the
- * real caller arguments into 2176(,r4).
- *
- * r0 carries the closure ptr into FFIXCLSR (r0 is not an argument
- * register and is not saved by CELQPRLG into the arg area).
- *
- * tramp[8..15]    = entry point = &tramp[16]
- * tramp[120..127] = pointer to ffi_closure_XPLINK function descriptor
- *
- * Instruction sequence (all offsets relative to tramp[0]):
- *   [16]  basr  r5, 0           r5 = tramp+18  (PC anchor)
- *   [18]  lgr   r0, r5          r0 = tramp+18
- *   [22]  ahi   r0, -18         r0 = tramp+0   = closure ptr
- *   [26]  lg    r5, 102(,r5)    r5 = value at tramp[120]  (18+102=120 ✓)
- *   [32]  lmg   r5, r6, 0(,r5) r5 = env, r6 = FFIXCLSR entry point
- *   [38]  bcr   15, r6          branch — r0=closure, r1/r2/r3/r4 untouched
- *
- * In FFIXCLSR: closure ptr is in r0 on entry.
-   */
-#if 0
   /* [16]  basr %r5,0              0D 50         r5 = tramp+18 */
   *(short *)&closure->tramp[16] = 0x0d50;
 
@@ -1366,21 +1388,7 @@ ffi_prep_closure_loc (ffi_closure *closure,
 
   *(long *)&closure->tramp[120] = (long)&ffi_closure_XPLINK;
 
-#else
-
-  void **ffi_closure_descriptor = (void **)&ffi_closure_XPLINK;
-
-  void **cheat = malloc(2 * sizeof(void *)); 
-
-  cheat[0] = (void *)closure;
-  cheat[1] = (void *)ffi_closure_descriptor[0];
-
-  *(long *)&closure->tramp[0] = (long)cheat;
-  *(long *)&closure->tramp[8] = (long)ffi_closure_descriptor[1];
-
-#endif
-
-
+#endif /* FFI_EXEC_STATIC_TRAMP */
 
   closure->cif = cif;
   closure->user_data = user_data;

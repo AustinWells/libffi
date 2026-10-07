@@ -59,6 +59,10 @@ typedef enum ffi_abi {
 #define FFI_TRAMPOLINE_SIZE 128
 #define FFI_NATIVE_RAW_API 0
 
+/* z/OS does not support mapping writable+executable pages, so the static
+   trampoline strategy (env-pointer cheat) is the only viable approach.
+   Enable it unconditionally.  */
+#define FFI_EXEC_STATIC_TRAMP 1
 
 #endif
 
