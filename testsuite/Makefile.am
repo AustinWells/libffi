@@ -23,7 +23,7 @@ EXTRA_DIST = config/default.exp emscripten/build.sh emscripten/conftest.py \
 	libffi.call/many_small_structs.c \
 	libffi.call/negint.c libffi.call/offsets.c libffi.call/overread.c \
 	libffi.call/plan.c libffi.call/plan_mixed.c libffi.call/plan_spill.c \
-	libffi.call/plan_struct.c libffi.call/plan_var.c \
+	libffi.call/plan_struct.c libffi.call/plan_size.c libffi.call/plan_var.c \
 	libffi.call/pr1172638.c libffi.call/promotion.c libffi.call/pyobjc_tc.c libffi.call/return_dbl.c \
 	libffi.call/return_dbl1.c libffi.call/return_dbl2.c libffi.call/return_fl.c \
 	libffi.call/return_fl1.c libffi.call/return_fl2.c libffi.call/return_fl3.c \
@@ -84,6 +84,7 @@ EXTRA_DIST = config/default.exp emscripten/build.sh emscripten/conftest.py \
 	libffi.complex/complex.exp libffi.complex/complex.inc libffi.complex/complex_defs_double.inc \
 	libffi.complex/complex_defs_float.inc libffi.complex/complex_defs_longdouble.inc libffi.complex/complex_double.c \
 	libffi.complex/complex_float.c libffi.complex/complex_i128.c libffi.complex/complex_int.c libffi.complex/complex_longdouble.c \
+	libffi.complex/complex_longdouble_abi.c \
 	libffi.complex/ffitest.h libffi.complex/many_complex.inc libffi.complex/many_complex_double.c \
 	libffi.complex/many_complex_float.c libffi.complex/many_complex_longdouble.c libffi.complex/return_complex.inc \
 	libffi.complex/return_complex1.inc libffi.complex/return_complex1_double.c libffi.complex/return_complex1_float.c \
@@ -92,6 +93,7 @@ EXTRA_DIST = config/default.exp emscripten/build.sh emscripten/conftest.py \
 	libffi.complex/return_complex_float.c libffi.complex/return_complex_longdouble.c libffi.go/aa-direct.c \
 	libffi.go/closure1.c libffi.go/ffitest.h libffi.go/go.exp \
 	libffi.go/static-chain.h Makefile.am Makefile.in \
+	libffi.jspi/cls_jspi.c libffi.jspi/ffitest.h libffi.jspi/jspi.exp \
 	libffi.threads/ffitest.h libffi.threads/threads.exp libffi.threads/tsan.c \
 	libffi.vector/vector.exp libffi.vector/ffitest.h libffi.vector/vector.h \
 	libffi.vector/vector_float32x4.c libffi.vector/vector_float32x2.c \
